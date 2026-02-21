@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Statistiques - FinSent</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    :root {
+      --bg:#050608; --accent:#f5f5f7; --muted:#8b8e98; --border:#262931;
+      --card:#0b0d13; --pos:#2ecc71; --neg:#ff4b5c; --neu:#3da5ff;
+    }
+    *{box-sizing:border-box;margin:0;padding:0;}
+    body{
+      font-family:system-ui,-apple-system,BlinkMacSystemFont,"SF Pro Text",sans-serif;
+      background: radial-gradient(circle at top, #191b22 0, #050608 45%);
+      color:var(--accent); min-height:100vh;
+    }
+    .layout{display:flex;min-height:100vh;}
+    .sidebar{width:64px;background:linear-gradient(to bottom,#050608,#050608 40%,#070910);
+      border-right:1px solid #181a22;display:flex;flex-direction:column;align-items:center;
+      padding:16px 0;gap:16px;}
+    .sidebar-logo{width:28px;height:28px;border-radius:50%;border:2px solid var(--accent);
+      display:flex;align-items:center;justify-content:center;font-size:16px;}
+    .sidebar-icon{width:36px;height:36px;border-radius:999px;display:flex;align-items:center;
+      justify-content:center;color:var(--muted);cursor:pointer;}
+    .sidebar-icon.active,.sidebar-icon:hover{background:#151821;color:var(--accent);}
+    .sidebar-bottom{margin-top:auto;padding-bottom:8px;}
+
+    .main{flex:1;display:flex;flex-direction:column;padding:24px 40px;}
+    .header{width:100%;padding:20px 0;display:flex;justify-content:center;margin-bottom:10px;}
+    .header-content{display:flex;align-items:center;gap:12px;}
+    .header-logo{width:38px;height:38px;border-radius:50%;border:2px solid var(--accent);
+      display:flex;align-items:center;justify-content:center;font-size:20px;}
+    .header-title{font-size:32px;font-weight:700;letter-spacing:.5px;}
+
+    .search-wrapper{max-width:960px;width:100%;margin:0 auto;}
+    .search-meta{display:flex;justify-content:space-between;align-items:center;margin-top:12px;
+      font-size:13px;color:var(--muted);}
+    .chip-row{display:flex;gap:8px;flex-wrap:wrap;}
+    .chip{padding:8px 14px;border-radius:999px;background:#11131a;border:1px solid var(--border);
+      font-size:13px;display:flex;align-items:center;gap:6px;cursor:pointer;color:var(--muted);
+      text-decoration:none;}
+    .chip:hover{border-color:#3b3f4c;color:var(--accent);}
+
+    .wrap{max-width:960px;width:100%;margin:22px auto 0;}
+    .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;}
+    .card{border:1px solid var(--border);background:var(--card);border-radius:18px;padding:14px;}
+    .kpi-title{color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.08em;}
+    .kpi-value{font-size:26px;font-weight:700;margin-top:6px;}
+    .kpi-sub{color:var(--muted);font-size:12px;margin-top:6px;}
+
+    .row{display:grid;grid-template-columns:2fr 1fr;gap:12px;margin-top:12px;}
+    .section-title{color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px;}
+    .barline{display:flex;gap:6px;align-items:flex-end;height:120px;margin-top:10px;}
+    .bar{width:100%;border:1px solid var(--border);border-radius:10px;background:#11131a;overflow:hidden;display:flex;}
+    .seg{height:100%;}
+    .seg.pos{background:rgba(46,204,113,.7);}
+    .seg.neu{background:rgba(61,165,255,.6);}
+    .seg.neg{background:rgba(255,75,92,.65);}
+
+    .list{display:flex;flex-direction:column;gap:8px;}
+    .item{display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #181b24;padding:8px 0;}
+    .badge{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;border:1px solid var(--border);font-size:12px;}
+    .bpos{color:var(--pos);border-color:rgba(46,204,113,.4);}
+    .bneu{color:var(--neu);border-color:rgba(61,165,255,.45);}
+    .bneg{color:var(--neg);border-color:rgba(255,75,92,.45);}
+
+    @media (max-width: 900px){
+      .main{padding:16px;}
+      .grid{grid-template-columns:repeat(2,1fr);}
+      .row{grid-template-columns:1fr;}
+    }
+  </style>
+</head>
+
+<body>
+<div class="layout">
+  <aside class="sidebar">
+    <div class="sidebar-logo">ϕ</div>
+    <a class="sidebar-icon" href="{% url 'sentiment_dashboard' %}" style="text-decoration:none;">⌕</a>
+    <div class="sidebar-icon active"></div>
+    <div class="sidebar-bottom">
+      <div class="sidebar-icon">⋯</div>
+    </div>
+  </aside>
+
+  <main class="main">
+    <header class="header">
+      <div class="header-content">
+        <div class="header-logo">ϕ</div>
+        <span class="header-title">FinSent</span>
+      </div>
+    </header>
+
+    <section class="search-wrapper">
+      <div class="search-meta">
+        <div class="chip-row">
+          <a class="chip" href="{% url 'statistics' %}">Statistiques</a>
+          <div class="chip">Actifs crypto</div>
+          <div class="chip">Actions</div>
+          <a class="chip" href="{% url 'latest_news' %}">Dernières news</a>
+        </div>
+        <div>Vue analytics</div>
+      </div>
+    </section>
+
+    <section class="wrap">
+      <div class="grid">
+        <div class="card">
+          <div class="kpi-title">Total analyses</div>
+          <div class="kpi-value">{{ stats.total }}</div>
+          <div class="kpi-sub">Toutes sources confondues</div>
+        </div>
+
+        <div class="card">
+          <div class="kpi-title">Score moyen</div>
+          <div class="kpi-value">{{ stats.avg_score|floatformat:2 }}</div>
+          <div class="kpi-sub">Moyenne des scores</div>
+        </div>
+
+        <div class="card">
+          <div class="kpi-title">Positif</div>
+          <div class="kpi-value">{{ stats.pct_positive }}%</div>
+          <div class="kpi-sub">{{ stats.count_positive }} analyses</div>
+        </div>
+
+        <div class="card">
+          <div class="kpi-title">Négatif</div>
+          <div class="kpi-value">{{ stats.pct_negative }}%</div>
+          <div class="kpi-sub">{{ stats.count_negative }} analyses</div>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="card">
+          <div class="section-title">Répartition (positif / neutre / négatif)</div>
+          {% with total=stats.total %}
+          <div class="bar" style="height:26px;">
+            {% if total > 0 %}
+              <div class="seg pos" style="width: {{ stats.pct_positive }}%;"></div>
+              <div class="seg neu" style="width: {{ stats.pct_neutral }}%;"></div>
+              <div class="seg neg" style="width: {{ stats.pct_negative }}%;"></div>
+            {% else %}
+              <div class="seg neu" style="width:100%;"></div>
+            {% endif %}
+          </div>
+          {% endwith %}
+
+          <div style="display:flex;gap:10px;margin-top:10px;flex-wrap:wrap;">
+            <span class="badge bpos">Positif: {{ stats.count_positive }}</span>
+            <span class="badge bneu">Neutre: {{ stats.count_neutral }}</span>
+            <span class="badge bneg">Négatif: {{ stats.count_negative }}</span>
+          </div>
+
+          <div class="section-title" style="margin-top:16px;">7 derniers jours</div>
+          {% if daily %}
+            <div class="barline">
+              {% for d in daily %}
+                {% with tot=d.positive|add:d.neutral|add:d.negative %}
+                <div title="{{ d.date }} | +{{ d.positive }} / ={{ d.neutral }} / -{{ d.negative }}" style="flex:1;min-width:14px;">
+                  <div class="bar" style="height:120px;flex-direction:column;">
+                    {% if tot > 0 %}
+                      <div class="seg pos" style="height: {{ d.positive|floatformat:0 }}px;"></div>
+                      <div class="seg neu" style="height: {{ d.neutral|floatformat:0 }}px;"></div>
+                      <div class="seg neg" style="height: {{ d.negative|floatformat:0 }}px;"></div>
+                    {% else %}
+                      <div class="seg neu" style="height:100%;"></div>
+                    {% endif %}
+                  </div>
+                </div>
+                {% endwith %}
+              {% endfor %}
+            </div>
+            <div class="kpi-sub" style="margin-top:8px;">Survolez une barre pour voir le détail.</div>
+          {% else %}
+            <div class="kpi-sub">Pas encore de données sur 7 jours.</div>
+          {% endif %}
+        </div>
+
+<div class="card" style="margin-top:12px;">
+  <div class="section-title">Sentiment moyen par actif</div>
+
+  {% if avg_by_actif %}
+    <div class="list">
+      {% for a in avg_by_actif %}
+        <div class="item">
+          <div style="flex:1;">
+            <div style="font-weight:700;">{{ a.ticker }}</div>
+            <div style="color:var(--muted);font-size:12px;">{{ a.nom_actif|truncatechars:32 }}</div>
+          </div>
+
+          <div style="display:flex;gap:10px;align-items:center;">
+            <span class="badge
+              {% if a.label == 'Positif' %}bpos
+              {% elif a.label == 'Négatif' %}bneg
+              {% else %}bneu{% endif %}
+            ">
+              {{ a.label }}
+            </span>
+
+            <span class="badge" title="Moyenne du score (0 à 1)">
+              {{ a.avg_score|floatformat:2 }}
+            </span>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+
+    <div class="kpi-sub" style="margin-top:8px;">
+      Moyenne calculée sur les analyses existantes.
+    </div>
+  {% else %}
+    <div class="kpi-sub">Aucune analyse trouvée (analyse_sentiment vide).</div>
+  {% endif %}
+</div>
+
+      </div>
+    </section>
+
+  </main>
+</div>
+</body>
+</html>
