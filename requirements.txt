@@ -1,9 +1,30 @@
-django
+# ========================
+# Django
+# ========================
+django>=5.0
+python-decouple
+psycopg[binary]
+
+# ========================
+# ML / NLP
+# ========================
 torch
 torchvision
 torchaudio
 transformers
+
+# ========================
+# Data & Scraping
+# ========================
 numpy
 pandas
 scikit-learn
 matplotlib
+requests
+yfinance
+lxml
+
+# ========================
+# Database (legacy support)
+# ========================
+psycopg2-binary

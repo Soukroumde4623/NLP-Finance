@@ -1,131 +1,262 @@
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-  <meta charset="UTF-8" />
-  <title>Dernières news</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <style>
-    :root{
-      --bg:#050608; --fg:#f5f5f7; --muted:#8b8e98; --border:#262931; --card:#0b0d13;
-      --pos:#2ecc71; --neg:#ff4b5c;
+{% extends "dashboard/base.html" %}
+
+{% block title %}Actualités — FinSent{% endblock %}
+{% block page_subtitle %}Flux d'actualités{% endblock %}
+
+{% block nav_news %}active{% endblock %}
+{% block pill_news %}active{% endblock %}
+
+{% block extra_css %}
+    .news-header {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 20px; flex-wrap: wrap; gap: 12px;
     }
-    body{background:var(--bg);color:var(--fg);font-family:system-ui;padding:24px;}
-    .topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;}
-    .btn{padding:10px 14px;border-radius:999px;border:1px solid var(--border);background:var(--card);color:var(--fg);text-decoration:none;}
-    .card{border:1px solid var(--border);background:var(--card);border-radius:16px;padding:14px;margin-bottom:12px;}
-    .title{font-weight:700;font-size:16px;}
-    .meta{color:var(--muted);font-size:12px;margin-top:6px;display:flex;gap:10px;flex-wrap:wrap;}
-    .summary{margin-top:8px;color:#d7d9df;font-size:14px;line-height:1.4;}
-    .badge{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;border:1px solid var(--border);font-size:12px;}
-    .pos{color:var(--pos);border-color:rgba(46,204,113,.4);}
-    .neg{color:var(--neg);border-color:rgba(255,75,92,.45);}
-  </style>
-</head>
-<body>
-  <div class="topbar">
-    <h1>Dernières news</h1>
-    <a class="btn" href="{% url 'sentiment_dashboard' %}">← Retour</a>
+    .news-header h1 {
+      font-size: 22px; font-weight: 700; letter-spacing: -.02em;
+    }
+    .news-header-right {
+      display: flex; align-items: center; gap: 8px;
+    }
+    .live-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: var(--success);
+      box-shadow: 0 0 8px var(--success);
+      animation: pulse 2s ease-in-out infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: .3; }
+    }
+    .live-text { font-size: 12px; color: var(--accent-secondary); font-weight: 500; }
+
+    /* News Grid */
+    .news-grid {
+      display: flex; flex-direction: column; gap: 10px;
+    }
+
+    /* News Card */
+    .news-card {
+      border: 1px solid var(--border);
+      background: var(--card);
+      border-radius: var(--radius-lg);
+      padding: 18px 20px;
+      transition: all var(--transition);
+      cursor: default;
+      position: relative;
+      overflow: hidden;
+    }
+    .news-card:hover {
+      border-color: var(--border-hover);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 20px rgba(0,0,0,.3);
+    }
+    .news-card::before {
+      content: '';
+      position: absolute; left: 0; top: 0; bottom: 0;
+      width: 3px;
+    }
+    .news-card.card-pos::before { background: var(--success); }
+    .news-card.card-neg::before { background: var(--danger); }
+    .news-card.card-neu::before { background: var(--blue); }
+
+    .news-card-top {
+      display: flex; justify-content: space-between; align-items: flex-start;
+      gap: 12px;
+    }
+    .news-title {
+      font-weight: 600; font-size: 14px; line-height: 1.45;
+      color: var(--accent);
+      flex: 1;
+    }
+    .news-meta {
+      display: flex; align-items: center; gap: 10px;
+      margin-top: 10px; flex-wrap: wrap;
+    }
+    .news-date {
+      font-size: 11px; color: var(--accent-tertiary);
+      display: flex; align-items: center; gap: 4px;
+    }
+    .news-date svg {
+      width: 12px; height: 12px; stroke: currentColor;
+      fill: none; stroke-width: 2;
+      stroke-linecap: round; stroke-linejoin: round;
+    }
+    .news-summary {
+      margin-top: 10px; color: var(--accent-secondary);
+      font-size: 13px; line-height: 1.55;
+    }
+
+    /* Score mini bar */
+    .score-mini {
+      display: flex; align-items: center; gap: 6px;
+    }
+    .score-minibar {
+      width: 40px; height: 4px; border-radius: 2px;
+      background: var(--surface); overflow: hidden;
+    }
+    .score-minibar-fill { height: 100%; border-radius: 2px; }
+    .score-minibar-fill.fill-pos { background: var(--success); }
+    .score-minibar-fill.fill-neg { background: var(--danger); }
+    .score-minibar-fill.fill-neu { background: var(--blue); }
+    .score-mini-val {
+      font-size: 11px; font-weight: 600;
+      font-variant-numeric: tabular-nums;
+      color: var(--accent-secondary);
+    }
+
+    /* Empty state */
+    .empty-news {
+      text-align: center; padding: 64px 20px;
+    }
+    .empty-news svg {
+      width: 48px; height: 48px; stroke: var(--accent-tertiary);
+      fill: none; stroke-width: 1.5; margin-bottom: 12px; opacity: .4;
+    }
+    .empty-news p { color: var(--accent-tertiary); font-size: 14px; }
+{% endblock %}
+
+{% block content %}
+  <div class="news-header animate-in">
+    <h1>Dernières actualités</h1>
+    <div class="news-header-right">
+      <span class="live-dot"></span>
+      <span class="live-text">Mise à jour auto</span>
+    </div>
   </div>
 
-  <div id="newsContainer">
+  <div class="news-grid" id="newsContainer">
     {% if documents %}
       {% for d in documents %}
-        <div class="card" data-id="{{ d.id_document }}">
-          <div class="title">{{ d.titre }}</div>
+        <div class="news-card animate-in delay-{{ forloop.counter0 }}
+          {% if d.polarite == 'Positif' %}card-pos
+          {% elif d.polarite == 'Négatif' %}card-neg
+          {% elif d.polarite == 'Neutre' %}card-neu
+          {% endif %}" data-id="{{ d.id_document }}">
 
-          <div class="meta">
-            <span>{{ d.date_publication }}</span>
-
+          <div class="news-card-top">
+            <div class="news-title">{{ d.titre }}</div>
             {% if d.polarite %}
               <span class="badge
-                {% if d.polarite == 'Positif' %}pos
-                {% elif d.polarite == 'Négatif' %}neg
-                {% endif %}
-              ">
-                Sentiment : <strong>{{ d.polarite }}</strong>
-                {% if d.score %} ({{ d.score|floatformat:2 }}){% endif %}
+                {% if d.polarite == 'Positif' %}bpos
+                {% elif d.polarite == 'Négatif' %}bneg
+                {% else %}bneu{% endif %}">
+                <span class="dot
+                  {% if d.polarite == 'Positif' %}dot-pos
+                  {% elif d.polarite == 'Négatif' %}dot-neg
+                  {% else %}dot-neu{% endif %}"></span>
+                {{ d.polarite }}
               </span>
             {% else %}
-              <span class="badge">Non analysé</span>
+              <span class="badge badge-muted">Non analysé</span>
+            {% endif %}
+          </div>
+
+          <div class="news-meta">
+            <span class="news-date">
+              <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              {{ d.date_publication }}
+            </span>
+            {% if d.score %}
+            <div class="score-mini">
+              <div class="score-minibar">
+                <div class="score-minibar-fill
+                  {% if d.polarite == 'Positif' %}fill-pos
+                  {% elif d.polarite == 'Négatif' %}fill-neg
+                  {% else %}fill-neu{% endif %}"
+                  style="width:{{ d.score|floatformat:0 }}%"></div>
+              </div>
+              <span class="score-mini-val">{{ d.score|floatformat:2 }}</span>
+            </div>
             {% endif %}
           </div>
 
           {% if d.contenu %}
-            <div class="summary">{{ d.contenu|truncatechars:260 }}</div>
+            <div class="news-summary">{{ d.contenu|truncatechars:240 }}</div>
           {% endif %}
         </div>
       {% endfor %}
     {% endif %}
   </div>
 
-  <p id="emptyMsg" {% if documents %}style="display:none"{% endif %}>Aucune news trouvée.</p>
+  <div id="emptyMsg" {% if documents %}style="display:none"{% endif %} class="empty-news">
+    <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M4 22h16a2 2 0 002-2V4a2 2 0 00-2-2H8a2 2 0 00-2 2v16a2 2 0 01-2 2zm0 0a2 2 0 01-2-2v-9c0-1.1.9-2 2-2h2"/>
+    </svg>
+    <p>Aucune actualité trouvée pour le moment.</p>
+  </div>
+{% endblock %}
 
-  <script>
-    let lastId = 0;
+{% block extra_js %}
+<script>
+  let lastId = 0;
+  const existing = document.querySelectorAll(".news-card[data-id]");
+  if (existing.length > 0) lastId = parseInt(existing[existing.length - 1].dataset.id, 10);
 
-    // initialise lastId depuis la dernière carte affichée
-    const existing = document.querySelectorAll(".card[data-id]");
-    if (existing.length > 0) {
-      lastId = parseInt(existing[existing.length - 1].dataset.id, 10);
-    }
+  function badgeFor(p) {
+    if (p === "Positif") return { cls: "bpos", dot: "dot-pos" };
+    if (p === "Négatif") return { cls: "bneg", dot: "dot-neg" };
+    return { cls: "bneu", dot: "dot-neu" };
+  }
+  function cardCls(p) {
+    if (p === "Positif") return "card-pos";
+    if (p === "Négatif") return "card-neg";
+    return "card-neu";
+  }
+  function fillCls(p) {
+    if (p === "Positif") return "fill-pos";
+    if (p === "Négatif") return "fill-neg";
+    return "fill-neu";
+  }
 
-    function badgeClass(polarite) {
-      if (polarite === "Positif") return "badge pos";
-      if (polarite === "Négatif") return "badge neg";
-      return "badge";
-    }
+  function createCard(item) {
+    const card = document.createElement("div");
+    const b = badgeFor(item.polarite);
+    card.className = `news-card animate-in ${item.polarite ? cardCls(item.polarite) : ""}`;
+    card.dataset.id = item.id_document;
 
-    function createCard(item) {
-      const card = document.createElement("div");
-      card.className = "card";
-      card.dataset.id = item.id_document;
+    const scoreTxt = item.score != null ? item.score.toFixed(2) : "";
+    const badge = item.polarite
+      ? `<span class="badge ${b.cls}"><span class="dot ${b.dot}"></span>${item.polarite}</span>`
+      : `<span class="badge badge-muted">Non analysé</span>`;
 
-      const scoreTxt = (item.score !== null && item.score !== undefined)
-        ? ` (${item.score.toFixed(2)})`
-        : "";
+    const scoreMini = item.score != null
+      ? `<div class="score-mini"><div class="score-minibar"><div class="score-minibar-fill ${fillCls(item.polarite)}" style="width:${Math.round(item.score*100)}%"></div></div><span class="score-mini-val">${scoreTxt}</span></div>`
+      : "";
 
-      const badge = item.polarite
-        ? `<span class="${badgeClass(item.polarite)}">Sentiment : <strong>${item.polarite}</strong>${scoreTxt}</span>`
-        : `<span class="badge">Non analysé</span>`;
+    card.innerHTML = `
+      <div class="news-card-top">
+        <div class="news-title">${item.titre}</div>
+        ${badge}
+      </div>
+      <div class="news-meta">
+        <span class="news-date">
+          <svg viewBox="0 0 24 24" style="width:12px;height:12px;stroke:currentColor;fill:none;stroke-width:2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          ${item.date_publication}
+        </span>
+        ${scoreMini}
+      </div>
+      ${item.contenu ? `<div class="news-summary">${item.contenu.slice(0, 240)}${item.contenu.length > 240 ? "…" : ""}</div>` : ""}
+    `;
+    return card;
+  }
 
-      card.innerHTML = `
-        <div class="title">${item.titre}</div>
-        <div class="meta">
-          <span>${item.date_publication}</span>
-          ${badge}
-        </div>
-        ${item.contenu ? `<div class="summary">${item.contenu.slice(0, 260)}${item.contenu.length>260?'...':''}</div>` : ""}
-      `;
-      return card;
-    }
-
-    async function fetchNew() {
-      try {
-        const resp = await fetch(`/news/feed/?after_id=${lastId}`);
-        const data = await resp.json();
-        const items = data.items || [];
-
-        if (items.length > 0) {
-          document.getElementById("emptyMsg").style.display = "none";
-          const container = document.getElementById("newsContainer");
-
-          // on ajoute successivement 
-          for (const item of items) {
-            const card = createCard(item);
-            container.prepend(card);  // ajoute en haut
-            lastId = Math.max(lastId, item.id_document);
-
-            // petit délai pour effet “successif”
-            await new Promise(r => setTimeout(r, 2000));
-          }
+  async function fetchNew() {
+    try {
+      const resp = await fetch(`/news/feed/?after_id=${lastId}`);
+      const data = await resp.json();
+      const items = data.items || [];
+      if (items.length > 0) {
+        document.getElementById("emptyMsg").style.display = "none";
+        const container = document.getElementById("newsContainer");
+        for (const item of items) {
+          container.prepend(createCard(item));
+          lastId = Math.max(lastId, item.id_document);
+          await new Promise(r => setTimeout(r, 800));
         }
-      } catch (e) {
-        // silencieux
       }
-    }
+    } catch (e) { /* silencieux */ }
+  }
 
-    setInterval(fetchNew, 20000);
-  </script>
-</body>
-
-</html>
+  setInterval(fetchNew, 20000);
+</script>
+{% endblock %}

@@ -1,0 +1,61 @@
+# ========================
+# Python
+# ========================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+dist/
+build/
+*.egg
+
+# ========================
+# Virtual Environment
+# ========================
+venv/
+env/
+.venv/
+.env
+
+# ========================
+# Django
+# ========================
+db.sqlite3
+db.sqlite3-journal
+*.log
+media/
+staticfiles/
+static_collected/
+
+# ========================
+# IDE / Editor
+# ========================
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# ========================
+# Jupyter Notebooks checkpoints
+# ========================
+.ipynb_checkpoints/
+
+# ========================
+# ML Models (large files)
+# ========================
+dashboard/models_ml/finbert_finetuned/model.safetensors
+
+# ========================
+# Environment variables
+# ========================
+.env
+
+# ========================
+# OS
+# ========================
+*.tmp
+*.bak

@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>{% block title %}FinSent{% endblock %}</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    /* =================================================================
+       DESIGN SYSTEM — FinSent v2
+       ================================================================= */
+    :root {
+      --bg: #06070a;
+      --bg-elevated: #0d0f14;
+      --surface: #10121a;
+      --surface-hover: #161923;
+      --accent: #f0f1f5;
+      --accent-soft: #2b2e36;
+      --accent-primary: #f0f1f5;
+      --accent-secondary: #6b7084;
+      --accent-tertiary: #4a4e5e;
+      --border: #1a1d28;
+      --border-hover: #2a2e3d;
+      --card: #0c0e15;
+      --card-hover: #11131c;
+      --danger: #ef4444;
+      --danger-soft: rgba(239,68,68,.12);
+      --success: #22c55e;
+      --success-soft: rgba(34,197,94,.12);
+      --blue: #3b82f6;
+      --blue-soft: rgba(59,130,246,.12);
+      --amber: #f59e0b;
+      --amber-soft: rgba(245,158,11,.12);
+      --purple: #a855f7;
+      --purple-soft: rgba(168,85,247,.12);
+      --gradient-primary: #3b82f6;
+      --shadow-sm: 0 1px 2px rgba(0,0,0,.3);
+      --shadow-md: 0 4px 16px rgba(0,0,0,.4);
+      --shadow-lg: 0 8px 32px rgba(0,0,0,.5);
+      --radius-sm: 8px;
+      --radius-md: 12px;
+      --radius-lg: 16px;
+      --radius-xl: 20px;
+      --radius-full: 999px;
+      --transition: .2s cubic-bezier(.4,0,.2,1);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--accent);
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--accent-tertiary); }
+
+    .layout { display: flex; min-height: 100vh; }
+
+    /* ===================== Sidebar ===================== */
+    .sidebar {
+      width: 68px;
+      background: var(--bg);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px 0;
+      gap: 6px;
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      z-index: 10;
+    }
+    .sidebar-logo {
+      width: 36px; height: 36px; border-radius: var(--radius-md);
+      background: var(--gradient-primary);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px; font-weight: 800; color: #fff;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 12px rgba(59,130,246,.3);
+    }
+    .sidebar-nav {
+      display: flex; flex-direction: column; gap: 4px;
+      width: 100%; padding: 0 10px;
+    }
+    .sidebar-icon {
+      width: 48px; height: 44px; border-radius: var(--radius-md);
+      display: flex; align-items: center; justify-content: center;
+      color: var(--accent-tertiary); cursor: pointer;
+      text-decoration: none; font-size: 18px;
+      transition: all var(--transition);
+      position: relative;
+    }
+    .sidebar-icon:hover {
+      background: var(--surface-hover);
+      color: var(--accent-primary);
+    }
+    .sidebar-icon.active {
+      background: var(--blue-soft);
+      color: var(--blue);
+    }
+    .sidebar-icon.active::before {
+      content: '';
+      position: absolute;
+      left: -10px; top: 50%; transform: translateY(-50%);
+      width: 3px; height: 20px;
+      border-radius: 0 3px 3px 0;
+      background: var(--blue);
+    }
+    .sidebar-icon svg {
+      width: 20px; height: 20px; stroke: currentColor;
+      fill: none; stroke-width: 1.8;
+      stroke-linecap: round; stroke-linejoin: round;
+    }
+    .sidebar-bottom { margin-top: auto; padding: 0 10px; width: 100%; }
+    .sidebar-divider { height: 1px; background: var(--border); margin: 8px 0; }
+
+    .sidebar-icon[data-tooltip]:hover::after {
+      content: attr(data-tooltip);
+      position: absolute;
+      left: calc(100% + 12px); top: 50%; transform: translateY(-50%);
+      background: var(--surface); border: 1px solid var(--border);
+      color: var(--accent);
+      padding: 6px 12px; border-radius: var(--radius-sm);
+      font-size: 12px; white-space: nowrap;
+      box-shadow: var(--shadow-md); z-index: 100;
+      pointer-events: none;
+    }
+
+    /* ===================== Main ===================== */
+    .main {
+      flex: 1; display: flex; flex-direction: column;
+      min-width: 0;
+      background: var(--bg);
+    }
+
+    /* ===================== Top Bar ===================== */
+    .topbar {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 14px 32px;
+      border-bottom: 1px solid var(--border);
+      background: rgba(6,7,10,.85);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      position: sticky; top: 0; z-index: 5;
+    }
+    .topbar-left { display: flex; align-items: center; gap: 12px; }
+    .topbar-logo {
+      width: 28px; height: 28px; border-radius: var(--radius-sm);
+      background: var(--gradient-primary);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 12px; font-weight: 800; color: #fff;
+    }
+    .topbar-title { font-size: 15px; font-weight: 700; letter-spacing: -.01em; }
+    .topbar-sub {
+      font-size: 12px; color: var(--accent-secondary);
+      margin-left: 8px; padding-left: 8px;
+      border-left: 1px solid var(--border);
+    }
+
+    .nav-pills { display: flex; gap: 4px; }
+    .nav-pill {
+      padding: 7px 14px; border-radius: var(--radius-full);
+      background: transparent; border: 1px solid transparent;
+      font-size: 13px; font-weight: 500;
+      display: flex; align-items: center; gap: 6px;
+      cursor: pointer; color: var(--accent-secondary);
+      text-decoration: none;
+      transition: all var(--transition);
+    }
+    .nav-pill:hover { background: var(--surface-hover); color: var(--accent); }
+    .nav-pill.active { background: var(--surface); border-color: var(--border); color: var(--accent); }
+    .nav-pill svg {
+      width: 14px; height: 14px; stroke: currentColor;
+      fill: none; stroke-width: 2;
+      stroke-linecap: round; stroke-linejoin: round;
+    }
+
+    /* ===================== Content Area ===================== */
+    .content-area {
+      flex: 1; padding: 28px 32px;
+      max-width: 1100px; width: 100%; margin: 0 auto;
+    }
+
+    /* ===================== Cards ===================== */
+    .card {
+      border: 1px solid var(--border);
+      background: var(--card);
+      border-radius: var(--radius-lg);
+      padding: 20px;
+      transition: all var(--transition);
+    }
+    .card:hover { border-color: var(--border-hover); }
+
+    /* ===================== Badges ===================== */
+    .badge {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 4px 10px; border-radius: var(--radius-full);
+      font-size: 11px; font-weight: 600;
+      letter-spacing: .02em; border: none;
+    }
+    .badge-positive, .bpos { color: var(--success); background: var(--success-soft); }
+    .badge-negative, .bneg { color: var(--danger); background: var(--danger-soft); }
+    .badge-neutral, .bneu  { color: var(--blue); background: var(--blue-soft); }
+    .badge-muted { color: var(--accent-secondary); background: var(--surface); }
+
+    .dot { width: 6px; height: 6px; border-radius: 50%; display: inline-block; }
+    .dot-pos { background: var(--success); }
+    .dot-neg { background: var(--danger); }
+    .dot-neu { background: var(--blue); }
+
+    /* ===================== KPIs ===================== */
+    .kpi-label {
+      color: var(--accent-secondary); font-size: 11px; font-weight: 600;
+      text-transform: uppercase; letter-spacing: .06em;
+    }
+    .kpi-value {
+      font-size: 28px; font-weight: 700; margin-top: 8px;
+      letter-spacing: -.02em;
+    }
+    .kpi-sub { color: var(--accent-tertiary); font-size: 12px; margin-top: 6px; }
+
+    /* ===================== Sections ===================== */
+    .section-title {
+      color: var(--accent-secondary); font-size: 11px; font-weight: 600;
+      text-transform: uppercase; letter-spacing: .08em;
+    }
+
+    .empty-state {
+      text-align: center; padding: 48px 20px;
+      color: var(--accent-tertiary);
+    }
+
+    /* ===================== Animations ===================== */
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(12px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .animate-in { animation: fadeInUp .4s cubic-bezier(.4,0,.2,1) both; }
+    .delay-1 { animation-delay: .05s; }
+    .delay-2 { animation-delay: .1s; }
+    .delay-3 { animation-delay: .15s; }
+    .delay-4 { animation-delay: .2s; }
+    .delay-5 { animation-delay: .25s; }
+
+    /* ===================== Responsive ===================== */
+    @media (max-width: 900px) {
+      .sidebar { display: none; }
+      .topbar { padding: 12px 16px; flex-wrap: wrap; gap: 8px; }
+      .content-area { padding: 16px; }
+      .nav-pills { overflow-x: auto; }
+    }
+
+    {% block extra_css %}{% endblock %}
+  </style>
+</head>
+
+<body>
+<div class="layout">
+
+  <!-- ===================== Sidebar ===================== -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">F</div>
+    <nav class="sidebar-nav">
+      <a class="sidebar-icon {% block nav_dashboard %}{% endblock %}"
+         href="{% url 'dashboard:sentiment_dashboard' %}" data-tooltip="Analyse">
+        <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      </a>
+      <a class="sidebar-icon {% block nav_stats %}{% endblock %}"
+         href="{% url 'dashboard:statistics' %}" data-tooltip="Statistiques">
+        <svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+      </a>
+      <a class="sidebar-icon {% block nav_news %}{% endblock %}"
+         href="{% url 'dashboard:latest_news' %}" data-tooltip="Actualités">
+        <svg viewBox="0 0 24 24"><path d="M4 22h16a2 2 0 002-2V4a2 2 0 00-2-2H8a2 2 0 00-2 2v16a2 2 0 01-2 2zm0 0a2 2 0 01-2-2v-9c0-1.1.9-2 2-2h2"/><line x1="10" y1="6" x2="18" y2="6"/><line x1="10" y1="10" x2="18" y2="10"/><line x1="10" y1="14" x2="14" y2="14"/></svg>
+      </a>
+    </nav>
+    <div class="sidebar-bottom">
+      <div class="sidebar-divider"></div>
+      <div class="sidebar-icon" data-tooltip="Paramètres">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ===================== Main ===================== -->
+  <div class="main">
+    <div class="topbar">
+      <div class="topbar-left">
+        <div class="topbar-logo">F</div>
+        <span class="topbar-title">FinSent</span>
+        <span class="topbar-sub">{% block page_subtitle %}Sentiment Analysis{% endblock %}</span>
+      </div>
+      <nav class="nav-pills">
+        <a class="nav-pill {% block pill_dashboard %}{% endblock %}"
+           href="{% url 'dashboard:sentiment_dashboard' %}">
+          <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          Analyse
+        </a>
+        <a class="nav-pill {% block pill_stats %}{% endblock %}"
+           href="{% url 'dashboard:statistics' %}">
+          <svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+          Statistiques
+        </a>
+        <a class="nav-pill {% block pill_news %}{% endblock %}"
+           href="{% url 'dashboard:latest_news' %}">
+          <svg viewBox="0 0 24 24"><path d="M4 22h16a2 2 0 002-2V4a2 2 0 00-2-2H8a2 2 0 00-2 2v16a2 2 0 01-2 2zm0 0a2 2 0 01-2-2v-9c0-1.1.9-2 2-2h2"/></svg>
+          Actualités
+        </a>
+      </nav>
+    </div>
+    <div class="content-area">
+      {% block content %}{% endblock %}
+    </div>
+  </div>
+</div>
+
+{% block extra_js %}{% endblock %}
+</body>
+</html>

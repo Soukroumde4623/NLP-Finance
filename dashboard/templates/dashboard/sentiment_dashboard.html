@@ -1,391 +1,262 @@
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-    <meta charset="UTF-8">
-    <title>Sentiment Financier</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+{% extends "dashboard/base.html" %}
 
-    <style>
-        :root {
-            --bg: #050608;
-            --bg-elevated: #111318;
-            --accent: #f5f5f7;
-            --accent-soft: #2b2e36;
-            --accent-primary: #f5f5f7;
-            --accent-secondary: #8b8e98;
-            --border-subtle: #262931;
-            --danger: #ff4b5c;
-            --success: #2ecc71;
-        }
+{% block title %}Analyse de Sentiment — FinSent{% endblock %}
+{% block page_subtitle %}Analyse interactive{% endblock %}
 
-        * { box-sizing: border-box; margin: 0; padding: 0; }
+{% block nav_dashboard %}active{% endblock %}
+{% block pill_dashboard %}active{% endblock %}
 
-        body {
-            font-family: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
-            background: radial-gradient(circle at top, #191b22 0, #050608 45%);
-            color: var(--accent);
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-        }
+{% block extra_css %}
+    /* ===================== Hero / Search ===================== */
+    .hero {
+      text-align: center;
+      padding: 48px 0 32px;
+    }
+    .hero-badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 5px 14px; border-radius: var(--radius-full);
+      background: var(--blue-soft); color: var(--blue);
+      font-size: 11px; font-weight: 600; letter-spacing: .03em;
+      margin-bottom: 16px; text-transform: uppercase;
+    }
+    .hero-badge .pulse {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: var(--blue);
+      animation: pulse 2s ease-in-out infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: .3; }
+    }
+    .hero h1 {
+      font-size: 32px; font-weight: 700; letter-spacing: -.03em;
+      line-height: 1.2; margin-bottom: 8px;
+    }
+    .hero p {
+      color: var(--accent-secondary); font-size: 15px; max-width: 500px; margin: 0 auto;
+    }
 
-        .layout {
-            display: flex;
-            flex: 1;
-        }
+    /* Search Box */
+    .search-container {
+      max-width: 640px; margin: 28px auto 0; position: relative;
+    }
+    .search-box {
+      display: flex; align-items: center;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-xl);
+      padding: 6px 6px 6px 20px;
+      transition: all var(--transition);
+      box-shadow: 0 0 0 0 rgba(59,130,246,0);
+    }
+    .search-box:focus-within {
+      border-color: rgba(59,130,246,.4);
+      box-shadow: 0 0 0 3px rgba(59,130,246,.1), 0 8px 32px rgba(0,0,0,.3);
+    }
+    .search-input {
+      flex: 1; background: transparent; border: none;
+      color: var(--accent-primary); font-size: 15px; font-family: inherit;
+      padding: 12px 0; outline: none;
+    }
+    .search-input::placeholder { color: var(--accent-tertiary); }
+    .search-btn {
+      width: 40px; height: 40px; border-radius: var(--radius-md);
+      border: none; cursor: pointer;
+      background: var(--blue); color: #fff;
+      display: flex; align-items: center; justify-content: center;
+      transition: all var(--transition);
+      flex-shrink: 0;
+    }
+    .search-btn:hover { transform: scale(1.05); box-shadow: 0 4px 16px rgba(59,130,246,.3); }
+    .search-btn svg {
+      width: 18px; height: 18px; stroke: currentColor;
+      fill: none; stroke-width: 2;
+      stroke-linecap: round; stroke-linejoin: round;
+    }
 
-        /* ===================== Sidebar ===================== */
-        .sidebar {
-            width: 64px;
-            background: linear-gradient(to bottom, #050608, #050608 40%, #070910);
-            border-right: 1px solid #181a22;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            padding: 16px 0;
-            gap: 16px;
-        }
-        .sidebar-logo {
-            width: 28px;
-            height: 28px;
-            border-radius: 50%;
-            border: 2px solid var(--accent-primary);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 16px;
-        }
-        .sidebar-icon {
-            width: 36px;
-            height: 36px;
-            border-radius: 999px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: var(--accent-secondary);
-            cursor: pointer;
-        }
-        .sidebar-icon.active,
-        .sidebar-icon:hover {
-            background: #151821;
-            color: var(--accent-primary);
-        }
-        .sidebar-bottom {
-            margin-top: auto;
-            padding-bottom: 8px;
-        }
+    /* ===================== Result Panel ===================== */
+    .result-panel {
+      max-width: 640px; margin: 28px auto 0;
+    }
 
-        /* ===================== Main Area ===================== */
-        .main {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            padding: 24px 40px;
-        }
+    /* Sentiment Banner */
+    .sentiment-card {
+      border: 1px solid var(--border);
+      background: var(--card);
+      border-radius: var(--radius-xl);
+      padding: 24px;
+      position: relative;
+      overflow: hidden;
+    }
+    .sentiment-card::before {
+      content: '';
+      position: absolute; top: 0; left: 0; right: 0;
+      height: 3px;
+    }
+    .sentiment-card.is-pos::before { background: var(--success); }
+    .sentiment-card.is-neg::before { background: var(--danger); }
+    .sentiment-card.is-neu::before { background: var(--blue); }
 
-        /* ===================== NEW HEADER ===================== */
-        .header {
-            width: 100%;
-            padding: 20px 0;
-            display: flex;
-            justify-content: center;
-            margin-bottom: 10px;
-        }
-        .header-content {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-        .header-logo {
-            width: 38px;
-            height: 38px;
-            border-radius: 50%;
-            border: 2px solid var(--accent-primary);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 20px;
-        }
-        .header-title {
-            font-size: 32px;
-            font-weight: 700;
-            letter-spacing: 0.5px;
-            color: var(--accent-primary);
-        }
+    .sentiment-header {
+      display: flex; justify-content: space-between; align-items: flex-start;
+      gap: 16px; flex-wrap: wrap;
+    }
+    .sentiment-header h3 { font-size: 16px; font-weight: 600; margin-bottom: 4px; }
+    .sentiment-header p { font-size: 13px; color: var(--accent-secondary); }
 
-        .logo-center {
-            display: flex;
-            justify-content: center;
-            margin-bottom: 24px;
-        }
-        .logo-mark {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-size: 28px;
-            font-weight: 600;
-        }
-        .logo-icon {
-            width: 32px;
-            height: 32px;
-            border-radius: 50%;
-            border: 2px solid var(--accent-primary);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 18px;
-        }
-        .logo-text-sub {
-            font-size: 14px;
-            color: var(--accent-secondary);
-        }
+    .score-block { text-align: right; }
+    .score-big {
+      font-size: 36px; font-weight: 800; letter-spacing: -.03em; line-height: 1;
+    }
+    .score-big.text-pos { color: var(--success); }
+    .score-big.text-neg { color: var(--danger); }
+    .score-big.text-neu { color: var(--blue); }
+    .score-label { font-size: 11px; color: var(--accent-tertiary); margin-top: 4px; }
 
-        /* ===================== Search Box ===================== */
-        .search-wrapper {
-            max-width: 960px;
-            width: 100%;
-            margin: 0 auto;
-        }
-        .search-box {
-            border-radius: 999px;
-            background: #050608;
-            border: 1px solid #30323a;
-            display: flex;
-            align-items: center;
-            padding: 4px 8px;
-            box-shadow: 0 0 0 1px rgba(255,255,255,0.02), 0 18px 45px rgba(0,0,0,0.85);
-        }
-        .search-input {
-            flex: 1;
-            background: transparent;
-            border: none;
-            color: var(--accent-primary);
-            font-size: 16px;
-            padding: 12px 14px;
-            outline: none;
-        }
-        .search-input::placeholder {
-            color: var(--accent-secondary);
-        }
-        .search-btn {
-            width: 32px;
-            height: 32px;
-            border-radius: 999px;
-            border: none;
-            background: #3c3f4b;
-            color: var(--accent-primary);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-        }
+    /* Gauge */
+    .gauge-bar {
+      margin-top: 20px; height: 6px; border-radius: 3px;
+      background: var(--surface);
+      overflow: hidden;
+    }
+    .gauge-fill {
+      height: 100%; border-radius: 3px;
+      transition: width .6s cubic-bezier(.4,0,.2,1);
+    }
+    .gauge-fill.fill-pos { background: var(--success); }
+    .gauge-fill.fill-neg { background: var(--danger); }
+    .gauge-fill.fill-neu { background: var(--blue); }
 
-        .search-meta {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-top: 12px;
-            font-size: 13px;
-            color: var(--accent-secondary);
-        }
-        .chip-row {
-            display: flex;
-            gap: 8px;
-        }
-        .chip {
-            padding: 8px 14px;
-            border-radius: 999px;
-            background: #11131a;
-            border: 1px solid #262931;
-            font-size: 13px;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            cursor: pointer;
-            color: var(--accent-secondary);
-            text-decoration: none;
+    /* ===================== History Table ===================== */
+    .history-card {
+      margin-top: 16px;
+      border: 1px solid var(--border);
+      background: var(--card);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+    }
+    .history-header {
+      padding: 14px 20px;
+      border-bottom: 1px solid var(--border);
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .history-header h4 {
+      font-size: 12px; font-weight: 600; text-transform: uppercase;
+      letter-spacing: .06em; color: var(--accent-secondary);
+    }
+    .history-row {
+      display: grid; grid-template-columns: 1fr auto auto;
+      gap: 12px; padding: 12px 20px;
+      border-bottom: 1px solid var(--border);
+      font-size: 13px;
+      transition: background var(--transition);
+      align-items: center;
+    }
+    .history-row:last-child { border-bottom: none; }
+    .history-row:hover { background: var(--surface); }
+    .history-query {
+      color: var(--accent); font-weight: 500;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .history-score {
+      font-weight: 600; font-variant-numeric: tabular-nums;
+      color: var(--accent-secondary);
+    }
 
-        }
-        .chip:hover {
-            border-color: #3b3f4c;
-            color: var(--accent-primary);
-        }
+    /* ===================== Suggestions ===================== */
+    .suggestions {
+      max-width: 640px; margin: 16px auto 0;
+      display: flex; flex-wrap: wrap; gap: 8px; justify-content: center;
+    }
+    .suggestion-chip {
+      padding: 6px 14px; border-radius: var(--radius-full);
+      background: var(--surface); border: 1px solid var(--border);
+      font-size: 12px; color: var(--accent-secondary);
+      cursor: pointer; transition: all var(--transition);
+    }
+    .suggestion-chip:hover {
+      border-color: var(--border-hover); color: var(--accent);
+      background: var(--surface-hover);
+    }
+{% endblock %}
 
-        /* ===================== Banner Result ===================== */
-        .result-wrapper {
-            max-width: 960px;
-            margin: 28px auto 0;
-        }
-        .banner {
-            border-radius: 24px;
-            background: radial-gradient(circle at top, #1d2130, #11131a);
-            border: 1px solid #262931;
-            padding: 20px 20px 18px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            color: var(--accent-primary);
-        }
-        .banner-title {
-            font-size: 18px;
-            font-weight: 600;
-        }
-        .banner-sub {
-            font-size: 13px;
-            color: var(--accent-secondary);
-            margin-top: 4px;
-        }
-        .banner-score {
-            text-align: right;
-        }
-        .badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            padding: 6px 12px;
-            border-radius: 999px;
-            font-size: 12px;
-            border: 1px solid #262931;
-        }
-        .badge-positive { color: var(--success); border-color: rgba(46, 204, 113, 0.4); }
-        .badge-negative { color: var(--danger); border-color: rgba(255, 75, 92, 0.45); }
-        .badge-neutral  { color: var(--neutral-blue); border-color: rgba(61,165,255,0.45); }
+{% block content %}
+  <!-- Hero -->
+  <div class="hero animate-in">
+    <div class="hero-badge"><span class="pulse"></span> FinBERT Model Active</div>
+    <h1>Analyse de Sentiment</h1>
+    <p>Analysez le sentiment de n'importe quel texte financier grâce à notre modèle FinBERT fine-tuné.</p>
+  </div>
 
-        .score-value {
-            font-size: 24px;
-            font-weight: 600;
-            margin-top: 4px;
-        }
-        .score-label {
-            font-size: 12px;
-            color: var(--accent-secondary);
-        }
+  <!-- Search -->
+  <form method="post" class="search-container animate-in delay-1">
+    {% csrf_token %}
+    <div class="search-box">
+      <input class="search-input" type="text" name="query"
+             placeholder="Entrez un texte financier à analyser…"
+             value="{{ query }}" autocomplete="off" />
+      <button type="submit" class="search-btn">
+        <svg viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+      </button>
+    </div>
+  </form>
 
-        .details {
-            margin-top: 18px;
-            border-radius: 20px;
-            border: 1px solid #262931;
-            background: #0b0d13;
-            padding: 16px 18px;
-        }
-        .details-title {
-            font-size: 13px;
-            text-transform: uppercase;
-            letter-spacing: .08em;
-            color: var(--accent-secondary);
-            margin-bottom: 10px;
-        }
-        .source-row {
-            display: flex;
-            justify-content: space-between;
-            font-size: 13px;
-            padding: 6px 0;
-            border-bottom: 1px solid #181b24;
-        }
-        .source-row:last-child {
-            border-bottom: none;
-        }
+  <!-- Suggestion chips -->
+  {% if not analysis %}
+  <div class="suggestions animate-in delay-2">
+    <span class="suggestion-chip" onclick="document.querySelector('.search-input').value=this.textContent;document.querySelector('form').submit()">Apple stock surges after earnings</span>
+    <span class="suggestion-chip" onclick="document.querySelector('.search-input').value=this.textContent;document.querySelector('form').submit()">Federal Reserve raises interest rates</span>
+    <span class="suggestion-chip" onclick="document.querySelector('.search-input').value=this.textContent;document.querySelector('form').submit()">Inflation remains at record levels</span>
+  </div>
+  {% endif %}
 
-        @media (max-width: 900px) {
-            .main { padding: 16px; }
-            .search-wrapper, .result-wrapper { max-width: 100%; }
-            .banner { flex-direction: column; align-items: flex-start; gap: 12px; }
-        }
-    </style>
-</head>
-
-<body>
-<div class="layout">
-    <aside class="sidebar">
-        <div class="sidebar-logo">ϕ</div>
-        <div class="sidebar-icon active">⌕</div>
-        <div class="sidebar-icon">⚙</div>
-        <div class="sidebar-bottom">
-            <div class="sidebar-icon">⋯</div>
+  <!-- Result -->
+  {% if analysis %}
+  <div class="result-panel animate-in delay-2">
+    <div class="sentiment-card {% if analysis.label == 'Positif' %}is-pos{% elif analysis.label == 'Négatif' %}is-neg{% else %}is-neu{% endif %}">
+      <div class="sentiment-header">
+        <div>
+          <h3>Résultat de l'analyse</h3>
+          <p>{{ analysis.summary }}</p>
         </div>
-    </aside>
+        <div class="score-block">
+          <span class="badge {% if analysis.label == 'Positif' %}badge-positive{% elif analysis.label == 'Négatif' %}badge-negative{% else %}badge-neutral{% endif %}">
+            <span class="dot {% if analysis.label == 'Positif' %}dot-pos{% elif analysis.label == 'Négatif' %}dot-neg{% else %}dot-neu{% endif %}"></span>
+            {{ analysis.label }}
+          </span>
+          <div class="score-big {% if analysis.label == 'Positif' %}text-pos{% elif analysis.label == 'Négatif' %}text-neg{% else %}text-neu{% endif %}">
+            {{ analysis.score|floatformat:2 }}
+          </div>
+          <div class="score-label">Score de confiance</div>
+        </div>
+      </div>
+      <div class="gauge-bar">
+        <div class="gauge-fill {% if analysis.label == 'Positif' %}fill-pos{% elif analysis.label == 'Négatif' %}fill-neg{% else %}fill-neu{% endif %}"
+             style="width: {{ analysis.score|floatformat:0 }}%"></div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
 
-    <main class="main">
-
-        <!-- ===================== NEW HEADER FINSENT ===================== -->
-        <header class="header">
-            <div class="header-content">
-                <div class="header-logo">ϕ</div>
-                <span class="header-title">FinSent</span>
-            </div>
-        </header>
-
-        <section class="search-wrapper">
-            <form method="post" class="search-box">
-                {% csrf_token %}
-                <input
-                    class="search-input"
-                    type="text"
-                    name="query"
-                    placeholder="Que voulez-vous savoir sur les marchés financiers ?"
-                    value="{{ query }}"
-                    autocomplete="off"
-                />
-                <button type="submit" class="search-btn">↑</button>
-            </form>
-
-            <div class="search-meta">
-                <div class="chip-row">
-                    <a class="chip" href="{% url 'statistics' %}">Statistiques</a>
-                    <div class="chip">Actifs crypto</div>
-                    <div class="chip">Actions</div>
-                    <a class="chip" href="{% url 'latest_news' %}">Dernières news</a>
-                </div>
-                <div>Analyse en mode expert</div>
-            </div>
-        </section>
-
-        {% if analysis %}
-        <section class="result-wrapper">
-            <div class="banner">
-                <div>
-                    <div class="banner-title">Résumé du sentiment</div>
-                    <div class="banner-sub">
-                        {{ analysis.summary }}
-                    </div>
-                </div>
-
-                <div class="banner-score">
-                    <div class="badge
-                        {% if analysis.label == 'Positif' %}badge-positive
-                        {% elif analysis.label == 'Négatif' %}badge-negative
-                        {% else %}badge-neutral{% endif %}
-                    ">
-                        <span>Sentiment</span>
-                        <strong>{{ analysis.label }}</strong>
-                    </div>
-                    <div class="score-value">{{ analysis.score|floatformat:2 }}</div>
-                    <div class="score-label">Score global (0 à 1)</div>
-                </div>
-            </div>
-
-        </section>
-
-        
-        {% endif %}
-
-
-         <!-- HISTORIQUE -->
-        {% if history %}
-        <section class="result-wrapper">
-            <div class="details">
-                <div class="details-title">Historique des analyses</div>
-                {% for h in history %}
-                <div class="source-row">
-                    <div>{{ h.query|truncatechars:40 }}</div>
-                    <div>{{ h.sentiment }}</div>
-                    <div>{{ h.score|floatformat:2 }}</div>
-                </div>
-                {% endfor %}
-            </div>
-        </section>
-        {% endif %}
-    </main>
-</div>
-</body>
-</html>
+  <!-- History -->
+  {% if history %}
+  <div class="result-panel animate-in delay-3">
+    <div class="history-card">
+      <div class="history-header">
+        <h4>Historique des analyses</h4>
+        <span class="badge badge-muted">{{ history|length }} dernières</span>
+      </div>
+      {% for h in history %}
+      <div class="history-row">
+        <span class="history-query">{{ h.query|truncatechars:50 }}</span>
+        <span class="badge {% if h.sentiment == 'Positif' %}badge-positive{% elif h.sentiment == 'Négatif' %}badge-negative{% else %}badge-neutral{% endif %}">
+          <span class="dot {% if h.sentiment == 'Positif' %}dot-pos{% elif h.sentiment == 'Négatif' %}dot-neg{% else %}dot-neu{% endif %}"></span>
+          {{ h.sentiment }}
+        </span>
+        <span class="history-score">{{ h.score|floatformat:2 }}</span>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+{% endblock %}

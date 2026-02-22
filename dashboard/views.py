@@ -1,9 +1,53 @@
+"""
+Vues de l'application dashboard.
+
+- sentiment_view  : Dashboard principal (analyse interactive de texte)
+- latest_news     : Dernières actualités avec sentiment
+- news_feed       : API JSON pour le flux de news en temps réel
+- statistics_view : Statistiques globales et par actif
+"""
+
+from django.db import connection
+from django.http import JsonResponse
 from django.shortcuts import render
+
 from .model_inference import predict_sentiment
 from .models import PredictionHistory
-from django.db import connection
+
+
+# =============================================================================
+# Helpers
+# =============================================================================
+
+_LABEL_FR = {
+    "positive": "Positif",
+    "neutral": "Neutre",
+    "negative": "Négatif",
+}
+
+
+def _polarite_fr(polarite):
+    """Traduit une polarité anglaise en français."""
+    return _LABEL_FR.get(polarite)
+
+
+def _label_from_mean(x):
+    """Convertit une polarité moyenne numérique en label français."""
+    if x is None:
+        return "Neutre"
+    if x > 0.15:
+        return "Positif"
+    if x < -0.15:
+        return "Négatif"
+    return "Neutre"
+
+
+# =============================================================================
+# 1. Dashboard principal — Analyse interactive
+# =============================================================================
 
 def sentiment_view(request):
+    """Page d'accueil : saisie de texte → analyse de sentiment FinBERT."""
     analysis = None
     query = ""
 
@@ -11,16 +55,12 @@ def sentiment_view(request):
         query = request.POST.get("query", "")
         score, label = predict_sentiment(query)
 
-        label_fr = {
-            "positive": "Positif",
-            "neutral": "Neutre",
-            "negative": "Négatif"
-        }[label]
+        label_fr = _LABEL_FR[label]
 
         PredictionHistory.objects.create(
             query=query,
             sentiment=label_fr,
-            score=score
+            score=score,
         )
 
         analysis = {
@@ -39,15 +79,16 @@ def sentiment_view(request):
     return render(request, "dashboard/sentiment_dashboard.html", {
         "analysis": analysis,
         "query": query,
-        "history": history
+        "history": history,
     })
 
-#--------------------------------------------------------------------------------------------------------------------------------------
 
-from django.shortcuts import render
-from django.db import connection
+# =============================================================================
+# 2. Dernières news
+# =============================================================================
 
 def latest_news(request):
+    """Affiche les 50 derniers documents avec leur analyse de sentiment."""
     with connection.cursor() as cursor:
         cursor.execute("""
             SELECT
@@ -66,32 +107,28 @@ def latest_news(request):
         rows = cursor.fetchall()
 
     documents = []
-    for (id_doc, titre, contenu, date_pub, polarite, score) in rows:
-        # mapping label vers FR (optionnel)
-        polarite_fr = None
-        if polarite == "positive":
-            polarite_fr = "Positif"
-        elif polarite == "negative":
-            polarite_fr = "Négatif"
-        elif polarite == "neutral":
-            polarite_fr = "Neutre"
-
+    for id_doc, titre, contenu, date_pub, polarite, score in rows:
         documents.append({
             "titre": titre,
             "contenu": contenu,
             "date_publication": date_pub,
-            "polarite": polarite_fr,   # "Positif"/"Neutre"/"Négatif" ou None
+            "polarite": _polarite_fr(polarite),
             "score": score,
         })
 
     return render(request, "dashboard/latest_news.html", {"documents": documents})
 
-from django.http import JsonResponse
+
+# =============================================================================
+# 3. API JSON — Flux de news
+# =============================================================================
 
 def news_feed(request):
     """
-    Retourne les derniers docs (analysés ou non) en JSON.
-    Paramètre optionnel: after_id=123 (retourne uniquement les docs plus récents que cet id)
+    Retourne les derniers documents (analysés ou non) en JSON.
+
+    Paramètre GET optionnel :
+        after_id (int) : retourne uniquement les docs plus récents que cet id.
     """
     after_id = request.GET.get("after_id")
     after_id = int(after_id) if after_id and after_id.isdigit() else 0
@@ -119,30 +156,33 @@ def news_feed(request):
         """, (after_id,))
         rows = cursor.fetchall()
 
-    def fr(p):
-        return {"positive": "Positif", "negative": "Négatif", "neutral": "Neutre"}.get(p)
-
     data = []
-    for (id_doc, titre, contenu, date_pub, polarite, score) in rows:
+    for id_doc, titre, contenu, date_pub, polarite, score in rows:
         data.append({
             "id_document": id_doc,
             "titre": titre,
             "contenu": contenu or "",
             "date_publication": date_pub.isoformat() if date_pub else "",
-            "polarite": fr(polarite),
+            "polarite": _polarite_fr(polarite),
             "score": float(score) if score is not None else None,
         })
 
     return JsonResponse({"items": data})
-#................................................................................................................
+
+
+# =============================================================================
+# 4. Statistiques
+# =============================================================================
 
 def statistics_view(request):
-    # 1) Totaux par polarité
+    """Page de statistiques : KPIs, répartition, série temporelle, top actifs."""
+
+    # --- Totaux par polarité ---
     with connection.cursor() as cursor:
         cursor.execute("""
-            SELECT COALESCE(polarite,'unknown') AS polarite, COUNT(*) as n
+            SELECT COALESCE(polarite, 'unknown') AS polarite, COUNT(*) AS n
             FROM analyse_sentiment
-            GROUP BY COALESCE(polarite,'unknown')
+            GROUP BY COALESCE(polarite, 'unknown')
         """)
         rows = cursor.fetchall()
 
@@ -156,18 +196,18 @@ def statistics_view(request):
     def pct(x):
         return round((x * 100.0 / total), 1) if total else 0.0
 
-    # 2) Score moyen global
+    # --- Score moyen global ---
     with connection.cursor() as cursor:
         cursor.execute("SELECT AVG(score) FROM analyse_sentiment")
         avg_score = cursor.fetchone()[0] or 0.0
 
-    # 3) Série par jour (7 derniers jours)
+    # --- Série par jour (7 derniers jours) ---
     with connection.cursor() as cursor:
         cursor.execute("""
-            SELECT DATE(date_analyse) as d,
-                   SUM(CASE WHEN polarite='positive' THEN 1 ELSE 0 END) as pos,
-                   SUM(CASE WHEN polarite='neutral' THEN 1 ELSE 0 END) as neu,
-                   SUM(CASE WHEN polarite='negative' THEN 1 ELSE 0 END) as neg
+            SELECT DATE(date_analyse) AS d,
+                   SUM(CASE WHEN polarite = 'positive' THEN 1 ELSE 0 END) AS pos,
+                   SUM(CASE WHEN polarite = 'neutral'  THEN 1 ELSE 0 END) AS neu,
+                   SUM(CASE WHEN polarite = 'negative' THEN 1 ELSE 0 END) AS neg
             FROM analyse_sentiment
             WHERE date_analyse >= NOW() - INTERVAL '7 days'
             GROUP BY DATE(date_analyse)
@@ -184,11 +224,11 @@ def statistics_view(request):
             "negative": int(neg or 0),
         })
 
-    # 4) Top tickers analysés
+    # --- Top tickers analysés ---
     top_tickers = []
     with connection.cursor() as cursor:
         cursor.execute("""
-            SELECT a.ticker, COUNT(*) as n
+            SELECT a.ticker, COUNT(*) AS n
             FROM analyse_sentiment s
             JOIN actif a ON a.id_actif = s.id_actif
             WHERE a.ticker IS NOT NULL
@@ -199,10 +239,10 @@ def statistics_view(request):
         for ticker, n in cursor.fetchall():
             top_tickers.append({"ticker": ticker, "count": int(n)})
 
-    # 5) Sentiment moyen par actif
+    # --- Sentiment moyen par actif ---
     avg_by_actif = []
-    with connection.cursor() as cur:
-        cur.execute("""
+    with connection.cursor() as cursor:
+        cursor.execute("""
             SELECT
                 a.ticker,
                 a.nom_actif,
@@ -222,26 +262,17 @@ def statistics_view(request):
             ORDER BY mean_polarity DESC, avg_score DESC
             LIMIT 30
         """)
-        rows = cur.fetchall()
-
-    def label_from_mean(x):
-        if x is None:
-            return "Neutre"
-        if x > 0.15:
-            return "Positif"
-        if x < -0.15:
-            return "Négatif"
-        return "Neutre"
+        rows = cursor.fetchall()
 
     for ticker, nom_actif, a_score, mean_pol in rows:
         avg_by_actif.append({
             "ticker": ticker,
             "nom_actif": nom_actif,
             "avg_score": float(a_score or 0.0),
-            "label": label_from_mean(mean_pol),
+            "label": _label_from_mean(mean_pol),
         })
 
-    # 6) Construire stats (utilisé par ton template)
+    # --- Contexte template ---
     stats = {
         "total": total,
         "avg_score": float(avg_score or 0.0),
