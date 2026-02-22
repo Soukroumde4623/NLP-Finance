@@ -46,7 +46,7 @@ finance_sentiment/
 
 ### 1. Clone the repository
 ```bash
-git clone <repo-url>
+git clone https://github.com/Soukroumde4623/NLP-Finance.git
 cd finance_sentiment
 ```
 
